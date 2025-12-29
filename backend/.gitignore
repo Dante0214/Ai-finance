@@ -14,4 +14,3 @@ test_kis_api.py
 # Secrets
 token.json
 key.json
-vercel.json
