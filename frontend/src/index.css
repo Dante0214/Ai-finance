@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+
+:root {
+  /* You can keep custom fonts here if needed */
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+}
