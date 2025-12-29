@@ -8,10 +8,16 @@ from services.kis_rank import get_rank_market_cap, get_rank_volume, get_rank_gai
 
 app = FastAPI()
 
-# CORS 설정 (프론트엔드와 통신 허용)
+# CORS 설정
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://ai-finance-coral.vercel.app", 
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=origins, 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
