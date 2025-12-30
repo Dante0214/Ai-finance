@@ -1,35 +1,84 @@
+# services/auth.py
 import requests
 import json
 import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from supabase import create_client, Client
 
 load_dotenv()
 
-# 환경 변수 (실전 키만 사용)
+# KIS API 환경 변수
 APP_KEY = os.getenv("KIS_APP_KEY")
 APP_SECRET = os.getenv("KIS_APP_SECRET")
-
-# [수정됨] 분기 없이 무조건 실전 도메인 사용
 BASE_URL = "https://openapi.koreainvestment.com:9443"
-TOKEN_FILE = "token.json"
 
-def get_access_token():
-    # 1. 기존 토큰 파일 확인
-    if os.path.exists(TOKEN_FILE):
-        try:
-            with open(TOKEN_FILE, 'r') as f:
-                token_data = json.load(f)
+# Supabase 환경 변수
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+
+# Supabase 클라이언트 싱글톤
+_supabase_client = None
+
+def get_supabase_client():
+    """Supabase 클라이언트 싱글톤 패턴"""
+    global _supabase_client
+    if _supabase_client is None:
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _supabase_client
+
+def get_token_from_db():
+    """Supabase에서 토큰 조회"""
+    try:
+        supabase = get_supabase_client()
+        response = supabase.table('kis_tokens').select('*').eq('id', 1).execute()
+        
+        if response.data and len(response.data) > 0:
+            token_data = response.data[0]
             
-            # 만료 시간 체크 (여유 있게 1분 전)
-            expired_at = datetime.strptime(token_data['expired_at'], "%Y-%m-%d %H:%M:%S")
+            # 만료 시간 파싱 (ISO 8601 형식)
+            expired_at_str = token_data['expired_at']
+            # Z 또는 +00:00 제거 후 파싱
+            expired_at_str = expired_at_str.replace('Z', '').replace('+00:00', '')
+            expired_at = datetime.fromisoformat(expired_at_str)
+            
+            # 만료 1분 전까지 유효하면 사용
             if datetime.now() < expired_at - timedelta(minutes=1):
+                print("✅ Supabase에서 유효한 토큰 조회")
                 return token_data['access_token']
-        except Exception:
-            print("⚠️ 토큰 파일 읽기 오류, 재발급을 시도합니다.")
+            else:
+                print("⏰ 토큰 만료됨, 재발급 필요")
+        else:
+            print("📭 DB에 토큰 없음, 최초 발급 필요")
+        
+        return None
+        
+    except Exception as e:
+        print(f"⚠️ Supabase 조회 실패: {e}")
+        return None
 
-    # 2. 토큰 재발급 요청 (실전 서버)
-    print("🔄 실전용 접근 토큰(Token) 발급 중...")
+def save_token_to_db(access_token, expired_at):
+    """Supabase에 토큰 저장 (upsert)"""
+    try:
+        supabase = get_supabase_client()
+        
+        # upsert: id=1이 있으면 업데이트, 없으면 삽입
+        supabase.table('kis_tokens').upsert({
+            'id': 1,
+            'access_token': access_token,
+            'expired_at': expired_at,
+            'updated_at': datetime.now().isoformat()
+        }).execute()
+        
+        print(f"✅ Supabase에 토큰 저장 완료 (만료: {expired_at})")
+        
+    except Exception as e:
+        print(f"⚠️ Supabase 저장 실패: {e}")
+        raise
+
+def request_new_token():
+    """한국투자증권 API에서 새 토큰 발급"""
+    print("🔄 실전용 접근 토큰 발급 중...")
     
     url = f"{BASE_URL}/oauth2/tokenP"
     headers = {"content-type": "application/json"}
@@ -46,14 +95,28 @@ def get_access_token():
         access_token = data['access_token']
         expired_at_str = data['access_token_token_expired']
         
-        # 3. 파일 저장
-        with open(TOKEN_FILE, 'w') as f:
-            json.dump({
-                "access_token": access_token,
-                "expired_at": expired_at_str
-            }, f)
-            
         print(f"✅ 토큰 발급 완료 (만료: {expired_at_str})")
-        return access_token
+        return access_token, expired_at_str
     else:
         raise Exception(f"❌ 토큰 발급 실패: {res.text}")
+
+def get_access_token():
+    """
+    메인 함수: 토큰 관리 로직
+    1. Supabase에서 토큰 확인
+    2. 유효하면 바로 반환
+    3. 없거나 만료되면 새로 발급 후 저장
+    """
+    
+    # 1. DB에서 토큰 확인
+    token = get_token_from_db()
+    if token:
+        return token
+    
+    # 2. 토큰이 없거나 만료됨 → 새로 발급
+    access_token, expired_at_str = request_new_token()
+    
+    # 3. DB에 저장
+    save_token_to_db(access_token, expired_at_str)
+    
+    return access_token
