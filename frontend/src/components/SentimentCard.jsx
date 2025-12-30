@@ -42,7 +42,7 @@ const SentimentCard = ({ score, summary }) => {
         </div>
       </div>
 
-      <div className="mt-auto bg-gray-50 rounded-xl p-4 text-gray-700 leading-relaxed border border-gray-100">
+      <div className="h-full bg-gray-50 rounded-xl p-4 text-gray-700 leading-relaxed border border-gray-100">
         <p>{summary}</p>
       </div>
     </div>
