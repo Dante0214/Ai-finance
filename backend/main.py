@@ -1,10 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# 기존 서비스들
-from services.stock import get_stock_data
-from services.ai import analyze_sentiment
-# 방금 만든 랭킹 서비스 임포트
 from services.kis_rank import get_rank_market_cap, get_rank_volume, get_rank_gainer
+from services.stock import get_stock_data
 
 app = FastAPI()
 
@@ -24,20 +21,11 @@ app.add_middleware(
 )
 
 # 1. 개별 종목 분석 API
-@app.get("/api/analysis/{ticker}")
-async def get_analysis(ticker: str):
-    print(f"🔍 Analyzing: {ticker}")
-    stock_data = get_stock_data(ticker)
-    ai_result = analyze_sentiment(stock_data['news'])
-    
-    return {
-        "ticker": ticker.upper(),
-        "current_price": stock_data['price'],
-        "news_summary": ai_result.get('summary'),
-        "sentiment_score": ai_result.get('score'),
-        "news_list": stock_data['news'],
-        "company_name": stock_data.get('company_name')
-    }
+@app.get("/api/analysis/{query}")
+async def get_analysis(query: str):
+    # 이제 get_stock_data 내부에서 
+    # DB조회 -> 가격조회 -> 뉴스수집을 알아서 수행합니다.
+    return get_stock_data(query)
 
 # 2. [랭킹 API] 프론트엔드가 호출하는 주소
 @app.get("/api/us/rankings")
