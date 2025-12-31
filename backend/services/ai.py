@@ -1,34 +1,94 @@
-# backend/services/ai.py
-import google.generativeai as genai
 import os
 import json
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+api_key = os.getenv("GOOGLE_API_KEY")
+
+if not api_key:
+    print("⚠️ GOOGLE_API_KEY가 설정되지 않았습니다.")
+    client = None
+else:
+    client = genai.Client(api_key=api_key)
+
+def clean_json_text(text):
+    """
+    AI 응답 텍스트에서 순수 JSON 부분만 추출합니다.
+    (마크다운, 앞뒤 공백, 부가 설명 제거)
+    """
+    try:
+        # 1. 마크다운 코드 블록 제거
+        text = text.replace("```json", "").replace("```", "")
+        
+        # 2. 앞뒤 공백 제거
+        text = text.strip()
+        
+        # 3. JSON의 시작('{')과 끝('}') 위치를 찾아서 그 사이만 추출
+        start_idx = text.find('{')
+        end_idx = text.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1:
+            # +1을 해야 '}'까지 포함됨
+            text = text[start_idx : end_idx + 1]
+            
+        return text
+    except Exception:
+        return text
 
 def analyze_sentiment(news_list):
-    if not news_list:
-        return {"summary": "뉴스가 충분하지 않습니다.", "score": 50}
+    if not client:
+        return {"summary": "API 키 설정 오류", "score": 50}
 
-    titles = [n['title'] for n in news_list]
+    if not news_list:
+        return {"summary": "최근 관련 뉴스가 없어 분석할 수 없습니다.", "score": 50}
+
+    titles = [n['title'] for n in news_list[:5]]
     
-    # 프롬프트 엔지니어링: 명확한 JSON 출력을 요구
     prompt = f"""
-    다음은 주식 관련 뉴스 헤드라인들입니다: {titles}
-    
-    이 뉴스들을 바탕으로 다음 두 가지를 분석해서 JSON 형식으로만 답변해줘. 마크다운 태그 없이 순수 JSON만 줘.
-    1. 'summary': 이 종목에 대한 호재/악재 여부를 포함한 한 문장 요약 (한글로)
-    2. 'score': 0(매우 부정)에서 100(매우 긍정) 사이의 점수 (정수형)
+    Analyze the sentiment of the following stock news headlines:
+    {titles}
+
+    Please provide the output strictly in JSON format with the following keys:
+    1. "summary": A one-sentence summary in Korean.
+    2. "score": An integer between 0 and 100.
+
+    Return ONLY the JSON string.
     """
 
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
         
-        # 응답 텍스트에서 JSON 파싱
-        text = response.text.replace('```json', '').replace('```', '').strip()
-        return json.loads(text)
+        raw_text = response.text
+        cleaned_text = clean_json_text(raw_text)
+        result = json.loads(cleaned_text)
+        
+        return {
+            "summary": result.get('summary', '요약 실패'), 
+            "score": result.get('score', 50)
+        }
+
     except Exception as e:
-        print(f"AI Analysis Error: {e}")
-        return {"summary": "분석 중 오류가 발생했습니다.", "score": 50}
+        print(f"❌ AI Analysis Error: {e}")
+        # 응답 내용을 로그로 확인 (디버깅용)
+        # print(f"Raw Response: {response.text}") 
+        
+        error_msg = str(e)
+        if "429" in error_msg or "ResourceExhausted" in error_msg:
+             return {
+                "summary": "AI 분석 사용량이 많아 잠시 분석을 중단합니다.", 
+                "score": 50
+            }
+            
+        return {
+            "summary": "AI 분석 중 오류가 발생했습니다.", 
+            "score": 50
+        }
