@@ -11,8 +11,8 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import MobileHeader from "../components/MobileHeader";
 
 // 환경 변수 설정
-//const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+//const API_BASE_URL = "http://127.0.0.1:8000";
 
 const fetchAnalysis = async (ticker) => {
   const { data } = await axios.get(`${API_BASE_URL}/api/analysis/${ticker}`);
