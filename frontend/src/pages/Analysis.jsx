@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import Header from "../components/Header";
 import SearchBar from "../components/SearchBar";
 import StockInfo from "../components/StockInfo";
@@ -9,13 +8,10 @@ import SentimentCard from "../components/SentimentCard";
 import NewsList from "../components/NewsList";
 import LoadingSpinner from "../components/LoadingSpinner";
 import MobileHeader from "../components/MobileHeader";
-
-// 환경 변수 설정
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-//const API_BASE_URL = "http://127.0.0.1:8000";
+import { stockApi } from "../api/client";
 
 const fetchAnalysis = async (ticker) => {
-  const { data } = await axios.get(`${API_BASE_URL}/api/analysis/${ticker}`);
+  const { data } = await stockApi.analyze(ticker);
   return data;
 };
 
