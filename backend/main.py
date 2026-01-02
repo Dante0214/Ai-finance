@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException,Query
 from fastapi.middleware.cors import CORSMiddleware
 from services.kis_rank import get_rank_market_cap, get_rank_volume, get_rank_gainer
 from services.stock import get_stock_data
+from supabase import create_client, Client
+import os
 
 app = FastAPI()
 
@@ -19,6 +21,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+supabase = create_client(
+    os.getenv("SUPABASE_URL"), 
+    os.getenv("SUPABASE_SERVICE_KEY")
+)
+
 
 # 1. 개별 종목 분석 API
 @app.get("/api/analysis/{query}")
@@ -45,3 +52,22 @@ def us_rankings():
     except Exception as e:
         print(f"❌ Ranking Error: {e}")
         return {"market_cap": [], "volume": [], "gainers": []}
+
+@app.get("/api/stock-search")
+async def stock_search(q: str = Query(..., min_length=1, max_length=50, description="검색어")):
+    try:
+        # 특수문자 이스케이핑
+        sanitized_q = q.replace('%', '\\%').replace('_', '\\_')
+        search_pattern = f"%{sanitized_q}%"
+        
+        response = supabase.table("stock_master")\
+            .select("ticker, name_kr, name_en")\
+            .or_(f"name_kr.ilike.{search_pattern},name_en.ilike.{search_pattern},ticker.ilike.{search_pattern}")\
+            .limit(10)\
+            .execute()
+        
+        return {"results": response.data, "count": len(response.data)}
+        
+    except Exception as e:
+        print(f"❌ Stock Search Error: {e}")
+        raise HTTPException(status_code=500, detail="검색 중 오류가 발생했습니다")
