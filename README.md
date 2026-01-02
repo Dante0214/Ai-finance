@@ -52,7 +52,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # 환경 변수 설정 (.env 파일 필요)
-# 필요한 키: SUPABASE_URL, SUPABASE_SERVICE_KEY, OPENAI_API_KEY, GOOGLE_API_KEY 등
+# 필요한 키: SUPABASE_URL, SUPABASE_SERVICE_KEY, GOOGLE_API_KEY 등
 
 # 서버 실행
 uvicorn main:app --reload
