@@ -48,7 +48,7 @@ def analyze_sentiment_naver(news_list):
 
 
     # HCX-005 모델 엔드포인트 지정 
-    request_url = f"{CLOVA_HOST}/v3/chat-completions/HCX-005"
+    request_url = f"{CLOVA_HOST}/v3/chat-completions/HCX-DASH-002"
 
     payload = {
         "messages": [ # 필수: 대화 메시지 배열 [cite: 31]
