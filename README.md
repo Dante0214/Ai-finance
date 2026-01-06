@@ -1,4 +1,5 @@
 # AI Finance Project
+**[바로가기](https://ai-finance-coral.vercel.app/)**
 
 AI 기반 주식 분석 및 정보 제공 플랫폼입니다.
 사용자가 주식 종목을 검색하면 AI를 활용하여 심층적인 분석 정보를 제공하며, 실시간 랭킹 및 검색 기능을 지원합니다.
@@ -17,9 +18,9 @@ AI 기반 주식 분석 및 정보 제공 플랫폼입니다.
 ### Backend
 
 - **Framework**: FastAPI (Python)
-- **Database**: Supabase
+- **Database**: Supabase(KIS 인증 토큰 및 검색을 위한 마스터 데이터 저장)
 - **AI Models**: Google Gemini
-- **Data Sources**: YFinance (Yahoo Finance), Feedparser (News)
+- **Data Sources**: YFinance (Yahoo Finance), Feedparser (News), KIS(한국투자증권 API)
 
 ## ✨ 주요 기능 (Features)
 
@@ -51,7 +52,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # 환경 변수 설정 (.env 파일 필요)
-# 필요한 키: SUPABASE_URL, SUPABASE_SERVICE_KEY, OPENAI_API_KEY, GOOGLE_API_KEY 등
+# 필요한 키: SUPABASE_URL, SUPABASE_SERVICE_KEY, GOOGLE_API_KEY 등
 
 # 서버 실행
 uvicorn main:app --reload
