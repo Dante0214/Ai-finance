@@ -3,6 +3,7 @@ from services.stock_definition import find_stock_info
 from services.find_price import get_current_price
 from services.stock_news import get_google_news, clean_company_name
 from services.ai import analyze_sentiment
+from services.ai_naver import analyze_sentiment_naver
 def get_stock_data(query: str):
     print(f"🔍 [Analyzing] '{query}' 요청 처리 시작...")
 
@@ -33,7 +34,8 @@ def get_stock_data(query: str):
 
     # 3. [뉴스 수집] Google RSS 사용
     news = get_google_news(search_name)
-    ai_result = analyze_sentiment(news)
+    #ai_result = analyze_sentiment(news)
+    ai_result = analyze_sentiment_naver(news)
 
     # 4. 최종 결과 반환
     return {
