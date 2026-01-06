@@ -34,8 +34,7 @@ def get_stock_data(query: str):
 
     # 3. [뉴스 수집] Google RSS 사용
     news = get_google_news(search_name)
-    #ai_result = analyze_sentiment(news)
-    ai_result = analyze_sentiment_naver(news)
+    ai_result = analyze_sentiment(news)
 
     # 4. 최종 결과 반환
     return {
