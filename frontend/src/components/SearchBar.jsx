@@ -46,10 +46,11 @@ const SearchBar = ({ onSearch, initialValue = "", isMobile = false }) => {
     }
   };
 
-  const handleSelectAutoComplete = (ticker) => {
-    setValue(ticker);
+  const handleSelectAutoComplete = (item) => {
+    const displayName = item.name_kr || item.name_en;
+    setValue(displayName);
     setIsOpen(false);
-    onSearch(ticker.toUpperCase());
+    onSearch(displayName);
   };
 
   const handleFocus = () => {
@@ -100,7 +101,7 @@ const SearchBar = ({ onSearch, initialValue = "", isMobile = false }) => {
               key={item.ticker}
               onMouseDown={(e) => {
                 e.preventDefault();
-                handleSelectAutoComplete(item.ticker);
+                handleSelectAutoComplete(item);
               }}
               className="px-4 py-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center border-b last:border-none border-gray-50 transition-colors"
             >

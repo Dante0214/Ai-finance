@@ -93,9 +93,9 @@ function Analysis() {
         <div className="animate-fade-in">
           <StockInfo
             ticker={data.ticker}
-            // [중요] 백엔드 키값 확인 필요 (current_price vs price)
-            price={data.price !== undefined ? data.price : data.current_price}
+            price={data.price !== undefined ? data.price : 0}
             companyName={data.company_name || data.ticker}
+            market={data.market}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-6">

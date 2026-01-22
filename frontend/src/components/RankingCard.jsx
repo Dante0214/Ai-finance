@@ -3,16 +3,24 @@ import { Clock } from "lucide-react";
 
 // 숫자 포맷팅 유틸리티
 const formatNum = (num) => new Intl.NumberFormat("en-US").format(num);
-const formatCap = (val) =>
-  val >= 1000 ? `$${(val / 1000).toFixed(1)}T` : `$${val.toFixed(1)}B`;
+const formatCap = (val, market) => {
+  if (!val) return "N/A";
 
-const RankingCard = ({ title, data, type, onSelect }) => {
+  if (market === "us") {
+    const trillionVal = val / 1_000_000_000_000;
+    return `$${trillionVal.toFixed(2)}조`;
+  } else {
+    const trillionKRW = val / 10_000;
+    return `${trillionKRW.toFixed(2)}조`;
+  }
+};
+const RankingCard = ({ title, data, type, onSelect, market }) => {
   return (
     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex-1">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-gray-800">{title}</h3>
         <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">
-          NASDAQ
+          {market === "us" ? "NASDAQ" : "KOSPI"}
         </span>
       </div>
 
@@ -24,7 +32,8 @@ const RankingCard = ({ title, data, type, onSelect }) => {
             장 시작 시간이 아닙니다
           </p>
           <p className="text-xs text-gray-400">
-            미국 증시 개장 시간에 데이터가 표시됩니다
+            {market === "us" ? "미국 증시" : "한국 증시"} 개장 시간에 데이터가
+            표시됩니다
           </p>
         </div>
       ) : (
@@ -33,7 +42,7 @@ const RankingCard = ({ title, data, type, onSelect }) => {
           {data.map((item, index) => (
             <div
               key={item.ticker}
-              onClick={() => onSelect(item.ticker)}
+              onClick={() => onSelect(item.name)}
               className="flex items-center justify-between group cursor-pointer hover:bg-blue-50 p-2 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -54,18 +63,20 @@ const RankingCard = ({ title, data, type, onSelect }) => {
 
                 <div className="flex flex-col">
                   <span className="font-bold text-gray-900 group-hover:text-blue-600 text-sm">
-                    {item.ticker}
+                    {item.name}
                   </span>
                   <span className="text-xs text-gray-400 truncate max-w-[100px]">
-                    {item.name}
+                    {item.ticker}
                   </span>
                 </div>
               </div>
-
-              <div className="text-right">
-                <div className="font-medium text-gray-900 text-sm">
-                  ${item.price.toFixed(2)}
-                </div>
+              <div className="font-medium text-gray-900 text-sm">
+                {market === "us"
+                  ? `$${item.price.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : `${item.price.toLocaleString()}원`}
 
                 <div
                   className={`text-xs font-medium ${
@@ -78,8 +89,15 @@ const RankingCard = ({ title, data, type, onSelect }) => {
 
                 {/* 타입별 하단 정보 (시총, 거래량 등) */}
                 <div className="text-[10px] text-gray-400 mt-0.5">
-                  {type === "cap" && formatCap(item.value)}
-                  {type === "vol" && `${formatNum(item.value)} Vol`}
+                  {type === "cap" && formatCap(item.value, market)}
+                  {type === "vol" && (
+                    <>
+                      {market === "kr"
+                        ? `${formatNum(item.volume)} Vol`
+                        : `${formatNum(item.value)} Vol`}
+                    </>
+                  )}
+                  {type === "rate" && "\u00A0"}
                 </div>
               </div>
             </div>

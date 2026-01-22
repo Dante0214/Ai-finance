@@ -1,6 +1,7 @@
 from fastapi import FastAPI,HTTPException,Query
 from fastapi.middleware.cors import CORSMiddleware
 from services.kis_rank import get_rank_market_cap, get_rank_volume, get_rank_gainer
+from services.rank_kr import get_all_stock_rankings
 from services.stock import get_stock_data
 from supabase import create_client, Client
 import os
@@ -71,3 +72,28 @@ async def stock_search(q: str = Query(..., min_length=1, max_length=50, descript
     except Exception as e:
         print(f"❌ Stock Search Error: {e}")
         raise HTTPException(status_code=500, detail="검색 중 오류가 발생했습니다")
+
+
+@app.get("/api/kr/rankings")
+def kr_rankings():
+    """
+    한국투자증권 API 통합 테스트
+    (거래량 순위 + 시가총액 순위 + 급등주 순위 동시 조회)
+    """
+    print("🔍 Fetching KR API (Volume & Market Cap & Gainer)...")
+    
+    # 모든 랭킹 데이터를 한 번에 가져오기
+    try:
+        # 서비스 함수에서 데이터 가져오기
+        all_rankings = get_all_stock_rankings()
+        
+        return {
+            "market_cap": all_rankings.get("market_cap", []),
+            "volume": all_rankings.get("volume", []),
+            "gainers": all_rankings.get("gainers", [])          }
+    except Exception as e:
+        print(f"❌ KR Ranking Error: {e}")
+        return {"market_cap": [], "volume": [], "gainers": []}
+
+
+ 
