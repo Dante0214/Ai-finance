@@ -42,7 +42,7 @@ def parse_ranking_data(items, rank_type):
             # 시총 or 거래량
             if rank_type == 'cap':
                 # 시가총액 API는 valx 필드 없음, 대신 tamt(거래대금) 사용 가능
-                value = float(item.get('tamt', 0)) / 1000000  # 백만 단위로 변환
+                value = float(item.get('tomv', 0))  # 백만 단위로 변환
             else:
                 value = int(item.get('tvol', 0))
             

@@ -3,10 +3,11 @@ from services.stock_definition import find_stock_info
 from services.find_price import get_current_price
 from services.stock_news import get_google_news, clean_company_name
 from services.ai import analyze_sentiment
-from services.ai_naver import analyze_sentiment_naver
+from services.rank_kr import get_kr_current_price
 def get_stock_data(query: str):
     print(f"🔍 [Analyzing] '{query}' 요청 처리 시작...")
 
+    is_korean_stock = False
     ticker = query.upper()
     display_name = query
     search_name = query
@@ -23,14 +24,23 @@ def get_stock_data(query: str):
         
         # 화면에 보여줄 이름 (한글 우선)
         display_name = name_kr if name_kr else name_en
+        is_korean_stock = not name_en or name_en == name_kr
+        if is_korean_stock:
+            search_name = name_kr
+        else:
+            # 뉴스 검색용 이름 (영문명에서 Inc 제거)
+            search_name = clean_company_name(name_en)
+
         
-        # 뉴스 검색용 이름 (영문명에서 Inc 제거)
-        search_name = clean_company_name(name_en)
+        
     else:
         print(f"⚠️ [Identify] 식별 실패. 검색어('{query}')를 티커로 간주합니다.")
 
-    # 2. [가격 조회] yfinance 사용
-    price = get_current_price(ticker)
+    # 2. [가격 조회] yfinance 사용 한국 주식은 KIS 사용
+    if is_korean_stock:
+        price = get_kr_current_price(ticker)
+    else:
+        price = get_current_price(ticker)
 
     # 3. [뉴스 수집] Google RSS 사용
     news = get_google_news(search_name)
@@ -38,6 +48,7 @@ def get_stock_data(query: str):
 
     # 4. 최종 결과 반환
     return {
+        "market": "KR" if is_korean_stock else "US",
         "ticker": ticker,
         "price": price,
         "news": news,
