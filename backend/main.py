@@ -31,13 +31,19 @@ supabase = create_client(
 # 1. 개별 종목 분석 API
 @app.get("/api/analysis/{query}")
 async def get_analysis(query: str):
-    # 이제 get_stock_data 내부에서 
-    # DB조회 -> 가격조회 -> 뉴스수집을 알아서 수행합니다.
+    """
+    개별 종목 분석 API
+    (가격 조회 + 뉴스 수집)
+    """
     return get_stock_data(query)
 
 # 2. [랭킹 API] 프론트엔드가 호출하는 주소
 @app.get("/api/us/rankings")
 def us_rankings():
+    """
+    미국 랭킹 API
+    (거래량 순위 + 시가총액 순위 + 급등주 순위 동시 조회)
+    """
     print("📊 Fetching US Rankings...") # 로그 확인용
     try:
         # 나스닥(NAS) 기준으로 데이터 가져오기
@@ -56,6 +62,10 @@ def us_rankings():
 
 @app.get("/api/stock-search")
 async def stock_search(q: str = Query(..., min_length=1, max_length=50, description="검색어")):
+    """
+    종목 검색 API
+    (종목명, 영문명, 티커 동시 조회)
+    """
     try:
         # 특수문자 이스케이핑
         sanitized_q = q.replace('%', '\\%').replace('_', '\\_')
@@ -77,7 +87,7 @@ async def stock_search(q: str = Query(..., min_length=1, max_length=50, descript
 @app.get("/api/kr/rankings")
 def kr_rankings():
     """
-    한국투자증권 API 통합 테스트
+    한국투자증권 통합 API
     (거래량 순위 + 시가총액 순위 + 급등주 순위 동시 조회)
     """
     print("🔍 Fetching KR API (Volume & Market Cap & Gainer)...")
@@ -95,5 +105,3 @@ def kr_rankings():
         print(f"❌ KR Ranking Error: {e}")
         return {"market_cap": [], "volume": [], "gainers": []}
 
-
- 

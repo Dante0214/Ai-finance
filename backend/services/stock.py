@@ -1,7 +1,7 @@
 # 분리된 모듈들 임포트
 from services.stock_definition import find_stock_info
 from services.find_price import get_current_price
-from services.stock_news import get_google_news, clean_company_name
+from services.stock_news import get_google_news, clean_company_name, get_naver_news
 from services.ai import analyze_sentiment
 from services.rank_kr import get_kr_current_price
 def get_stock_data(query: str):
@@ -43,8 +43,11 @@ def get_stock_data(query: str):
         price = get_current_price(ticker)
 
     # 3. [뉴스 수집] Google RSS 사용
-    news = get_google_news(search_name)
-    ai_result = analyze_sentiment(news)
+    if is_korean_stock:
+        news = get_naver_news(search_name)
+    else:
+        news = get_google_news(search_name)
+    ai_result = analyze_sentiment(news,is_korean=is_korean_stock)
 
     # 4. 최종 결과 반환
     return {
