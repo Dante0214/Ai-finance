@@ -51,7 +51,7 @@ def get_naver_news(keyword: str, limit=10):
         
         encoded_query = urllib.parse.quote(keyword)
         display_count = limit * 10
-        url = f"https://openapi.naver.com/v1/search/news.json?query={encoded_query}&display={display_count}&sort=date"
+        url = f"https://openapi.naver.com/v1/search/news.json?query={encoded_query}&display={display_count}&sort=sim"
         
         headers = {
             "X-Naver-Client-Id": client_id,
