@@ -3,6 +3,10 @@ import urllib.parse
 import requests
 import re
 import os
+import logging
+
+# 로거 설정
+logger = logging.getLogger(__name__)
 
 def clean_company_name(name: str) -> str:
     """뉴스 검색 정확도를 위해 Inc, Corp 등을 제거"""
@@ -28,10 +32,10 @@ def get_google_news(keyword: str, limit=10):
                 "date": entry.get('published', '')
             })
             
-        print(f"✅ [Google News] '{keyword}' 관련 뉴스 {len(news_list)}개 수집")
+        logger.info(f"✅ [Google News] '{keyword}' 관련 뉴스 {len(news_list)}개 수집")
         
     except Exception as e:
-        print(f"❌ [Google News] Error: {e}")
+        logger.error(f"❌ [Google News] Error: {e}")
         
     return news_list
 
@@ -46,7 +50,7 @@ def get_naver_news(keyword: str, limit=10):
         client_secret = os.getenv("NAVER_CLIENT_SECRET")
         
         if not client_id or not client_secret:
-            print("⚠️ [Naver News] API 키가 설정되지 않았습니다.")
+            logger.warning("⚠️ [Naver News] API 키가 설정되지 않았습니다.")
             return []
         
         encoded_query = urllib.parse.quote(keyword)
@@ -74,11 +78,11 @@ def get_naver_news(keyword: str, limit=10):
             })
             if len(news_list) >= limit:
                 break
-        print(f"✅ [Naver News] '{keyword}' 관련 뉴스 {len(news_list)}개 수집")
+        logger.info(f"✅ [Naver News] '{keyword}' 관련 뉴스 {len(news_list)}개 수집")
         
     except requests.exceptions.RequestException as e:
-        print(f"❌ [Naver News] Network Error: {e}")
+        logger.error(f"❌ [Naver News] Network Error: {e}")
     except Exception as e:
-        print(f"❌ [Naver News] Error: {e}")
+        logger.error(f"❌ [Naver News] Error: {e}")
         
     return news_list
