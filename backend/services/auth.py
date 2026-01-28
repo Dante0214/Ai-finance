@@ -1,15 +1,19 @@
 import requests
 import json
 import os
+import logging
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
 load_dotenv()
 
+# 로거 설정
+logger = logging.getLogger(__name__)
+
 APP_KEY = os.getenv("KIS_APP_KEY")
 APP_SECRET = os.getenv("KIS_APP_SECRET")
-BASE_URL = "https://openapi.koreainvestment.com:9443"
+BASE_URL = os.getenv("KIS_BASE_URL")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
@@ -40,7 +44,7 @@ def get_token_from_db():
                 if expired_at.tzinfo is None:
                     expired_at = expired_at.replace(tzinfo=timezone.utc)
             except ValueError:
-                print(f"⚠️ 시간 포맷 파싱 실패: {expired_at_str}")
+                logger.warning(f"⚠️ 시간 포맷 파싱 실패: {expired_at_str}")
                 return None
             
             # 현재 시간을 UTC 기준으로 비교
@@ -48,13 +52,13 @@ def get_token_from_db():
             
             # 만료 10분 전이면 재발급하도록 여유 있게 설정
             if now_utc < expired_at - timedelta(minutes=10):
-                print(f"✅ 유효한 토큰 사용 중 (만료: {expired_at})")
+                logger.info(f"✅ 유효한 토큰 사용 중 (만료: {expired_at})")
                 return token_data['access_token']
             else:
-                print("⏰ 토큰이 곧 만료되거나 이미 만료되었습니다.")
+                logger.info("⏰ 토큰이 곧 만료되거나 이미 만료되었습니다.")
         return None
     except Exception as e:
-        print(f"⚠️ Supabase 조회 실패: {e}")
+        logger.warning(f"⚠️ Supabase 조회 실패: {e}")
         return None
 
 def save_token_to_db(access_token, expired_at_str):
@@ -76,9 +80,9 @@ def save_token_to_db(access_token, expired_at_str):
             'updated_at': datetime.now(timezone.utc).isoformat()
         }).execute()
         
-        print(f"✅ Supabase에 토큰 저장 완료 (UTC 기준: {utc_time_iso})")
+        logger.info(f"✅ Supabase에 토큰 저장 완료 (UTC 기준: {utc_time_iso})")
     except Exception as e:
-        print(f"⚠️ Supabase 저장 실패: {e}")
+        logger.warning(f"⚠️ Supabase 저장 실패: {e}")
 
 def request_new_token():
     url = f"{BASE_URL}/oauth2/tokenP"
@@ -103,10 +107,11 @@ def get_access_token():
         return token
     
     # 2. 만료 시 신규 발급
-    print("🔄 토큰이 없거나 만료되어 새로 발급합니다...")
+    logger.info("🔄 토큰이 없거나 만료되어 새로 발급합니다...")
     access_token, expired_at_str = request_new_token()
     
     # 3. 저장
     save_token_to_db(access_token, expired_at_str)
     
     return access_token
+

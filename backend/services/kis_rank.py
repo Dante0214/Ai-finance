@@ -1,15 +1,21 @@
-import requests
+import httpx
 import os
+import logging
+import asyncio
 from dotenv import load_dotenv
 from services.auth import get_access_token
 
 load_dotenv()
 
+# 로거 설정
+logger = logging.getLogger(__name__)
+
 APP_KEY = os.getenv("KIS_APP_KEY")
 APP_SECRET = os.getenv("KIS_APP_SECRET")
-BASE_URL = "https://openapi.koreainvestment.com:9443"
+BASE_URL = os.getenv("KIS_BASE_URL")
 
 def get_headers(tr_id):
+    """헤더 생성 헬퍼 함수"""
     access_token = get_access_token()
     return {
         "content-type": "application/json; charset=utf-8",
@@ -19,12 +25,14 @@ def get_headers(tr_id):
         "tr_id": tr_id
     }
 
-# 공통: 데이터 정제 함수 (정확히 5개만 처리)
 def parse_ranking_data(items, rank_type):
+    """
+    공통: 데이터 정제 함수 (정확히 5개만 처리)
+    """
     result = []
     
     if not items:
-        print(f"⚠️ {rank_type} - 데이터가 비어있습니다")
+        logger.warning(f"⚠️ {rank_type} - 데이터가 비어있습니다")
         return result
     
     # 정확히 5개만 처리
@@ -56,103 +64,101 @@ def parse_ranking_data(items, rank_type):
             })
             
         except Exception as e:
-            print(f"❌ {rank_type} 파싱 에러 (항목 {i}): {e}")
+            logger.error(f"❌ {rank_type} 파싱 에러 (항목 {i}): {e}")
             continue
     
     return result
 
-# 1. 시가총액 순위 (TOP 5만 요청)
-def get_rank_market_cap(excd="NAS"):
-    path = "/uapi/overseas-stock/v1/ranking/market-cap"
-    headers = get_headers("HHDFS76350100")
-    
-    params = {
-        "AUTH": "",
-        "EXCD": excd,
-        "KEYB": "",
-        "VOL_RANG": "0"
-    }
-    
+async def _fetch_rank_data(client, path, tr_id, params, rank_type):
+    """
+    [Internal] 랭킹 데이터 요청 공통 함수 (Async)
+    """
+    headers = get_headers(tr_id)
     try:
-        res = requests.get(f"{BASE_URL}{path}", headers=headers, params=params, timeout=10)
+        res = await client.get(f"{BASE_URL}{path}", headers=headers, params=params, timeout=10.0)
         res.raise_for_status()
         
         data = res.json()
         
         if data.get('rt_cd') != '0':
-            print(f"❌ API 에러 (시가총액): {data.get('msg1')}")
+            logger.error(f"❌ API 에러 ({rank_type}): {data.get('msg1')}")
             return []
         
         # ⭐ TOP 5만 추출
         items = data.get('output2', [])[:5]
-        print(f"✅ 시가총액 TOP 5 수신")
-        return parse_ranking_data(items, 'cap')
+        logger.info(f"✅ {rank_type} TOP 5 수신 완료")
+        return parse_ranking_data(items, rank_type)
         
-    except requests.exceptions.RequestException as e:
-        print(f"❌ 시가총액 API 호출 실패: {e}")
+    except httpx.RequestError as e:
+        logger.error(f"❌ {rank_type} API 호출 실패: {e}")
         return []
+
+# 1. 시가총액 순위 (TOP 5만 요청)
+async def get_rank_market_cap(client, excd="NAS"):
+    """미국 주식 시가총액 순위 조회"""
+    return await _fetch_rank_data(
+        client=client,
+        path="/uapi/overseas-stock/v1/ranking/market-cap",
+        tr_id="HHDFS76350100",
+        params={
+            "AUTH": "",
+            "EXCD": excd,
+            "KEYB": "",
+            "VOL_RANG": "0"
+        },
+        rank_type='cap'
+    )
 
 # 2. 거래량 순위 (TOP 5만 요청)
-def get_rank_volume(excd="NAS"):
-    path = "/uapi/overseas-stock/v1/ranking/trade-vol"
-    headers = get_headers("HHDFS76310010")
-    
-    params = {
-        "AUTH": "",
-        "EXCD": excd,
-        "NDAY": "0",
-        "vol_rang": "0",
-        "keyb": "",
-        "gb": "0"
-    }
-    
-    try:
-        res = requests.get(f"{BASE_URL}{path}", headers=headers, params=params, timeout=10)
-        res.raise_for_status()
-        
-        data = res.json()
-        
-        if data.get('rt_cd') != '0':
-            print(f"❌ API 에러 (거래량): {data.get('msg1')}")
-            return []
-        
-        # ⭐ TOP 5만 추출
-        items = data.get('output2', [])[:5]
-        print(f"✅ 거래량 TOP 5 수신")
-        return parse_ranking_data(items, 'vol')
-        
-    except requests.exceptions.RequestException as e:
-        print(f"❌ 거래량 API 호출 실패: {e}")
-        return []
+async def get_rank_volume(client, excd="NAS"):
+    """미국 주식 거래량 순위 조회"""
+    return await _fetch_rank_data(
+        client=client,
+        path="/uapi/overseas-stock/v1/ranking/trade-vol",
+        tr_id="HHDFS76310010",
+        params={
+            "AUTH": "",
+            "EXCD": excd,
+            "NDAY": "0",
+            "vol_rang": "0",
+            "keyb": "",
+            "gb": "0"
+        },
+        rank_type='vol'
+    )
 
 # 3. 급등률 순위 (TOP 5만 요청)
-def get_rank_gainer(excd="NAS"):
-    path = "/uapi/overseas-stock/v1/ranking/updown-rate"
-    headers = get_headers("HHDFS76290000")
-    
-    params = {
-        "AUTH": "",
-        "EXCD": excd,
-        "GUBN": "1",
-        "NDAY": "0",
-        "vol_rang": "1"
-    }
-    
+async def get_rank_gainer(client, excd="NAS"):
+    """미국 주식 급등 순위 조회"""
+    return await _fetch_rank_data(
+        client=client,
+        path="/uapi/overseas-stock/v1/ranking/updown-rate",
+        tr_id="HHDFS76290000",
+        params={
+            "AUTH": "",
+            "EXCD": excd,
+            "GUBN": "1",
+            "NDAY": "0",
+            "vol_rang": "1"
+        },
+        rank_type='rate'
+    )
+
+async def get_all_us_rankings():
+    """모든 미국 랭킹 데이터를 모아서 하나의 딕셔너리로 반환"""
     try:
-        res = requests.get(f"{BASE_URL}{path}", headers=headers, params=params, timeout=10)
-        res.raise_for_status()
-        
-        data = res.json()
-        
-        if data.get('rt_cd') != '0':
-            print(f"❌ API 에러 (급등률): {data.get('msg1')}")
-            return []
-        
-        # ⭐ TOP 5만 추출
-        items = data.get('output2', [])[:5]
-        print(f"✅ 급등률 TOP 5 수신")
-        return parse_ranking_data(items, 'rate')
-        
-    except requests.exceptions.RequestException as e:
-        print(f"❌ 급등률 API 호출 실패: {e}")
-        return []
+        async with httpx.AsyncClient() as client:
+            market_cap, volume, gainers = await asyncio.gather(
+                get_rank_market_cap(client),
+                get_rank_volume(client),
+                get_rank_gainer(client)
+            )
+            
+            return {
+                "market_cap": market_cap,
+                "volume": volume,
+                "gainers": gainers
+            }
+    except Exception as e:
+        logger.error(f"❌ US Ranking Error: {e}")
+        return {"market_cap": [], "volume": [], "gainers": []}
