@@ -30,7 +30,8 @@ function WatchlistSection() {
   return (
     <div className="mb-10 animate-fade-in">
       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500 cursor-pointer" />
+        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+        즐겨 찾기
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {watchlist.map((stock) => (
