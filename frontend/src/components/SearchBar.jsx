@@ -1,67 +1,19 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import { Search } from "lucide-react";
-import { useStockSearch } from "../hooks/useStockSearch";
+import { useSearchBarLogic } from "../hooks/useSearchBarLogic";
 
 const SearchBar = ({ onSearch, initialValue = "", isMobile = false }) => {
-  // 기본값 추가
-  const [value, setValue] = useState(initialValue || ""); // 안전장치
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  // 커스텀 훅 사용
-  const { results, isLoading } = useStockSearch(value);
-
-  // 외부 클릭 감지
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // initialValue 변경 시 동기화
-  useEffect(() => {
-    setValue(initialValue || "");
-  }, [initialValue]);
-
-  const handleInputChange = (e) => {
-    setValue(e.target.value || "");
-    const trimmedValue = (value || "").trim();
-    if (trimmedValue.length > 0 && results.length > 0) {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const trimmedValue = (value || "").trim();
-    if (trimmedValue) {
-      setIsOpen(false);
-      onSearch(trimmedValue.toUpperCase());
-    }
-  };
-
-  const handleSelectAutoComplete = (item) => {
-    const displayName = item.name_kr || item.name_en;
-    setValue(displayName);
-    setIsOpen(false);
-    onSearch(displayName);
-  };
-
-  const handleFocus = () => {
-    const trimmedValue = (value || "").trim();
-    if (trimmedValue && results.length > 0) {
-      setIsOpen(true);
-    }
-  };
-  const handleBlur = () => {
-    setTimeout(() => setIsOpen(false), 150);
-  };
+  const {
+    value,
+    isOpen,
+    dropdownRef,
+    results,
+    handleInputChange,
+    handleSubmit,
+    handleSelectAutoComplete,
+    handleFocus,
+    handleBlur,
+  } = useSearchBarLogic({ onSearch, initialValue });
 
   return (
     <div
@@ -87,7 +39,7 @@ const SearchBar = ({ onSearch, initialValue = "", isMobile = false }) => {
         <button
           type="submit"
           disabled={!(value || "").trim()}
-          className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 mr-2 md:mr-0 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           분석
         </button>

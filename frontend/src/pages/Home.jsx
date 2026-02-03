@@ -1,55 +1,22 @@
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import Header from "../components/Header";
 import SearchBar from "../components/SearchBar";
 import RankingCard from "../components/RankingCard";
-import { stockApi, kr_stockApi } from "../api/client";
-import { useState } from "react";
-const fetchRankings = async () => {
-  const { data } = await stockApi.rankings();
-  return data;
-};
-const fetchKrRankings = async () => {
-  const { data } = await kr_stockApi.rankings();
-  return data;
-};
+import { useHomeLogic } from "../hooks/useHomeLogic";
+import WatchlistSection from "../components/WatchlistSection";
+import { useNavigate } from "react-router-dom";
+import { Star } from "lucide-react";
 
 function Home() {
-  const navigate = useNavigate();
-  const [market, setMarket] = useState("us");
-
-  const { data: usRankingData, isLoading: isUsRankingLoading } = useQuery({
-    queryKey: ["usRankings"],
-    queryFn: fetchRankings,
-    staleTime: 1000 * 60 * 5, // 5분 캐싱
-  });
-
-  const { data: krRankingData, isLoading: isKrRankingLoading } = useQuery({
-    queryKey: ["krRankings"],
-    queryFn: fetchKrRankings,
-    staleTime: 1000 * 60 * 5, // 5분 캐싱
-  });
-
-  const rankingData = market === "us" ? usRankingData : krRankingData;
-  const isRankingLoading =
-    market === "us" ? isUsRankingLoading : isKrRankingLoading;
-
-  const handleSearch = (name) => {
-    if (name) {
-      navigate(`/analysis/${name}`);
-    }
-  };
-
-  const handleReset = () => {
-    navigate("/");
-  };
-  console.log(rankingData);
+  const { market, setMarket, rankingData, isRankingLoading, handleSearch } =
+    useHomeLogic();
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-12 font-sans text-gray-900">
-      <Header onReset={handleReset} />
+      <div className="mt-8 mb-8">
+        <SearchBar onSearch={handleSearch} />
+      </div>
 
-      <SearchBar onSearch={handleSearch} />
+      <WatchlistSection />
+
       <div className="flex justify-center gap-4 mb-8">
         <button
           onClick={() => setMarket("us")}
