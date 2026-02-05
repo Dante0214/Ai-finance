@@ -1,1 +1,4 @@
 backend/kr_upload.py
+backend/upload.py
+
+frontend/src/api/client.js

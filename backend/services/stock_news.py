@@ -4,6 +4,7 @@ import requests
 import re
 import os
 import logging
+import html
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -68,14 +69,29 @@ def get_naver_news(keyword: str, limit=10):
         items = response.json().get('items', [])
         exclude_keywords = ['증권', '證', 'ETF', 'etf']
         for i in items:
-            if any(exclude in i['title'] for exclude in exclude_keywords):
+            # 1. HTML 태그(<b> 등) 제거
+            title_no_tag = re.sub(r'<[^>]*>', '', i['title'])
+            desc_no_tag = re.sub(r'<[^>]*>', '', i['description'])
+            
+            # 2. HTML 엔티티(&quot; 등)를 특수문자로 변환
+            title_clean = html.unescape(title_no_tag)
+            description_clean = html.unescape(desc_no_tag)
+            
+            # 제외 키워드 체크
+            if any(exclude in title_clean for exclude in exclude_keywords):
                 continue
+            
+            # 정확도 재검증
+            if keyword not in title_clean and keyword not in description_clean:
+                continue
+
             news_list.append({
-                "title": re.sub(r'<[^>]*>', '', i['title']),        
-                "description": re.sub(r'<[^>]*>', '', i['description']), 
+                "title": title_clean,        
+                "description": description_clean, 
                 "link": i['link'],
                 "date": i.get('pubDate', '')
             })
+            
             if len(news_list) >= limit:
                 break
         logger.info(f"✅ [Naver News] '{keyword}' 관련 뉴스 {len(news_list)}개 수집")
