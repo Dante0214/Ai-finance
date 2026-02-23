@@ -104,7 +104,8 @@ async def get_rank_market_cap(client, excd="NAS"):
             "AUTH": "",
             "EXCD": excd,
             "KEYB": "",
-            "VOL_RANG": "0"
+            "VOL_RANG": "0",
+            "CURR_GB": "1"
         },
         rank_type='cap'
     )
@@ -120,9 +121,10 @@ async def get_rank_volume(client, excd="NAS"):
             "AUTH": "",
             "EXCD": excd,
             "NDAY": "0",
-            "vol_rang": "0",
-            "keyb": "",
-            "gb": "0"
+            "VOL_RANG": "0",
+            "KEYB": "",
+            "PRC1": "0",
+            "PRC2": "0"
         },
         rank_type='vol'
     )
@@ -136,10 +138,11 @@ async def get_rank_gainer(client, excd="NAS"):
         tr_id="HHDFS76290000",
         params={
             "AUTH": "",
+            "KEYB": "",
             "EXCD": excd,
             "GUBN": "1",
             "NDAY": "0",
-            "vol_rang": "1"
+            "VOL_RANG": "1"
         },
         rank_type='rate'
     )
