@@ -40,6 +40,16 @@ const useWatchlistStore = create(
           }
         }),
 
+      // 즐겨찾기 가격 일괄 업데이트
+      updatePrices: (priceMap) =>
+        set((state) => ({
+          watchlist: state.watchlist.map((item) =>
+            priceMap[item.ticker] !== undefined
+              ? { ...item, price: priceMap[item.ticker] }
+              : item,
+          ),
+        })),
+
       // Check if a stock is in the watchlist
       isInWatchlist: (ticker) => {
         // This is a helper, but since we can't access get() inside the hook return easily without

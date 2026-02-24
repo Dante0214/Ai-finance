@@ -13,6 +13,9 @@ export const stockApi = {
     apiClient.get("/api/stock-search", { params: { q: query } }),
   analyze: (ticker) => apiClient.get(`/api/analysis/${ticker}`),
   rankings: () => apiClient.get("/api/us/rankings"),
+  // 즐겨찾기 종목 일괄 현재가 조회
+  watchlistPrices: (items) =>
+    apiClient.post("/api/watchlist/prices", { items }),
 };
 
 export const kr_stockApi = {
