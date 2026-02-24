@@ -3,9 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 # 서비스 모듈 임포트
-from services.kis_rank import get_all_us_rankings
-from services.rank_kr import get_all_stock_rankings
-from services.stock import get_stock_data, search_stocks
+from services.kis_rank_us import get_all_us_rankings
+from services.kis_rank_kr import get_all_stock_rankings
+from services.stock import get_stock_data
+from services.stock_definition import search_stocks
 
 # 로깅 설정
 logging.basicConfig(
