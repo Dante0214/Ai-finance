@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import logging
 
 # 서비스 모듈 임포트
@@ -7,6 +8,8 @@ from services.kis_rank_us import get_all_us_rankings
 from services.kis_rank_kr import get_all_stock_rankings
 from services.stock import get_stock_data
 from services.stock_definition import search_stocks
+from services.kis_price import get_current_price
+from services.kis_kr_price import get_kr_current_price
 
 # 로깅 설정
 logging.basicConfig(
@@ -75,3 +78,34 @@ async def kr_rankings():
     return await get_all_stock_rankings()
 
 
+# 5. [즐겨찾기] 일괄 현재가 조회 API
+class WatchlistItem(BaseModel):
+    ticker: str
+    market: str  # "US" 또는 "KR"
+
+class WatchlistPriceRequest(BaseModel):
+    items: list[WatchlistItem]
+
+@app.post("/api/watchlist/prices")
+def watchlist_prices(request: WatchlistPriceRequest):
+    """
+    즐겨찾기 종목들의 최신 가격을 일괄 조회합니다.
+    각 종목의 ticker와 market을 받아 해당 API로 현재가를 조회합니다.
+    """
+    logger.info(f"⭐ [Watchlist] {len(request.items)}개 종목 현재가 일괄 조회 시작")
+    
+    prices = {}
+    for item in request.items:
+        try:
+            if item.market.upper() == "KR":
+                price = get_kr_current_price(item.ticker)
+            else:
+                price = get_current_price(item.ticker)
+            
+            prices[item.ticker] = price if price else 0
+        except Exception as e:
+            logger.error(f"❌ [Watchlist] {item.ticker} 가격 조회 실패: {e}")
+            prices[item.ticker] = 0
+    
+    logger.info(f"✅ [Watchlist] 일괄 조회 완료: {prices}")
+    return {"prices": prices}
