@@ -115,3 +115,22 @@ def get_access_token():
     
     return access_token
 
+def get_kis_headers(tr_id: str) -> dict:
+    """
+    KIS API 공통 헤더를 생성합니다.
+    토큰 자동 발급/갱신 포함.
+    
+    Args:
+        tr_id: 트랜잭션 ID (예: "HHDFS76200200")
+    
+    Returns:
+        dict: KIS API 요청에 필요한 헤더
+    """
+    return {
+        "content-type": "application/json; charset=utf-8",
+        "authorization": f"Bearer {get_access_token()}",
+        "appkey": APP_KEY,
+        "appsecret": APP_SECRET,
+        "tr_id": tr_id,
+        "custtype": "P"
+    }

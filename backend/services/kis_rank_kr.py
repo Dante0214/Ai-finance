@@ -1,29 +1,11 @@
 import httpx
-import os
 import logging
 import asyncio
-from dotenv import load_dotenv
-from services.auth import get_access_token
-
-load_dotenv()
+from services.auth import get_kis_headers, BASE_URL
 
 # 로거 설정
 logger = logging.getLogger(__name__)
 
-APP_KEY = os.getenv("KIS_APP_KEY")
-APP_SECRET = os.getenv("KIS_APP_SECRET")
-BASE_URL = os.getenv("KIS_BASE_URL")
-
-def get_headers(tr_id):
-    """헤더 생성 헬퍼 함수"""
-    return {
-        "content-type": "application/json; charset=utf-8",
-        "authorization": f"Bearer {get_access_token()}",
-        "appkey": APP_KEY,
-        "appsecret": APP_SECRET,
-        "tr_id": tr_id,
-        "custtype": "P"
-    }
 
 def parse_kr_data(data, limit=5):
     """
@@ -64,7 +46,7 @@ async def _fetch_kr_ranking(client, path, tr_id, params, limit=5, rank_name="Unk
     한국 주식 랭킹 데이터 요청 공통 함수 (Async)
     """
     url = f"{BASE_URL}{path}"
-    headers = get_headers(tr_id)
+    headers = get_kis_headers(tr_id)
     
     try:
         res = await client.get(url, headers=headers, params=params, timeout=10.0)
@@ -164,32 +146,3 @@ async def get_all_stock_rankings():
     except Exception as e:
         logger.error(f"❌ 전체 랭킹 취합 중 에러: {e}")
         return {"success": False, "error": str(e)} 
-
-def get_kr_current_price(ticker):
-    """
-    특정 종목의 현재가를 조회합니다.
-    """
-    url = f"{BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-price"
-    headers = get_headers("FHKST01010100")
-    params = {
-        "FID_COND_MRKT_DIV_CODE": "J",
-        "FID_INPUT_ISCD" : ticker
-    }
-
-    try:
-        res = httpx.get(url, headers=headers, params=params, timeout=10.0)     
-        data = res.json()
-        
-        # 정상 처리(rt_cd == '0')인지 확인 후 stck_prpr 추출
-        if data.get("rt_cd") == "0":
-            # 가격은 문자열로 들어오므로 숫자로 변환
-            current_price = int(data["output"]["stck_prpr"])
-            return current_price
-        else:
-            logger.error(f"❌ API 에러 (현재가): {data.get('msg1')}")
-            return None
-            
-    except Exception as e:
-        logger.error(f"❌ 요청 중 에러 발생: {e}")
-        return None
-

@@ -11,6 +11,7 @@ env/
 .env
 check_model.py
 test_kis_api.py
+test_kis_price.py
 # Secrets
 token.json
 key.json

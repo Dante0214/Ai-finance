@@ -1,10 +1,10 @@
 # 분리된 모듈들 임포트
 import logging
 from services.stock_definition import find_stock_info
-from services.find_price import get_current_price
+from services.kis_price import get_current_price
 from services.stock_news import get_google_news, clean_company_name, get_naver_news
 from services.ai import analyze_sentiment
-from services.rank_kr import get_kr_current_price
+from services.kis_kr_price import get_kr_current_price
 from services.auth import get_supabase_client
 
 # 로거 설정
@@ -42,7 +42,7 @@ def get_stock_data(query: str):
     else:
         logger.warning(f"⚠️ [Identify] 식별 실패. 검색어('{query}')를 티커로 간주합니다.")
 
-    # 2. [가격 조회] yfinance 사용 한국 주식은 KIS 사용
+    # 2. [가격 조회] 해외주식은 KIS 해외주식 현재가 API, 한국 주식은 KIS 국내주식 현재가 API 사용
     if is_korean_stock:
         price = get_kr_current_price(ticker)
     else:
@@ -65,61 +65,3 @@ def get_stock_data(query: str):
         "sentiment_score": ai_result['score'],
         "news_summary": ai_result['summary']
     }
-
-def search_stocks(query: str, limit: int = 10):
-    """
-    종목 검색 서비스 로직
-    (종목명, 영문명, 티커 동시 조회 및 정렬)
-    """
-    try:
-        supabase = get_supabase_client()
-        
-        # 특수문자 이스케이핑
-        sanitized_q = query.replace('%', '\\%').replace('_', '\\_')
-        search_pattern = f"%{sanitized_q}%"
-        
-        # 1. DB에서 더 많은 후보군 가져오기
-        fetch_limit = limit * 3
-        
-        response = supabase.table("stock_master")\
-            .select("ticker, name_kr, name_en")\
-            .or_(f"name_kr.ilike.{search_pattern},name_en.ilike.{search_pattern},ticker.ilike.{search_pattern}")\
-            .limit(fetch_limit)\
-            .execute()
-        
-        results = response.data or []
-        
-        # 2. Python 레벨 정렬 (정확도 우선)
-        # Score 0: 정확 일치
-        # Score 1: 시작 일치
-        # Score 2: 포함
-        
-        q_upper = query.upper()
-        
-        def calculate_score(item):
-            t = (item['ticker'] or "").upper()
-            kr = (item['name_kr'] or "").upper()
-            en = (item['name_en'] or "").upper()
-            
-            # 정확 일치 (최우선)
-            if q_upper in [t, kr, en]:
-                return 0
-            
-            # 시작 일치 (차선)
-            if t.startswith(q_upper) or kr.startswith(q_upper) or en.startswith(q_upper):
-                return 1
-            
-            return 2 # 그 외 포함
-            
-        # 점수 오름차순 정렬 (0 -> 1 -> 2)
-        results.sort(key=calculate_score)
-        
-        # 3. 요청된 limit만큼 자르기
-        final_results = results[:limit]
-        
-        return {"results": final_results, "count": len(final_results)}
-        
-    except Exception as e:
-        logger.error(f"❌ Stock Search Error: {e}")
-        # 에러 시 빈 배열 반환하여 프론트 터짐 방지
-        return {"results": [], "count": 0}

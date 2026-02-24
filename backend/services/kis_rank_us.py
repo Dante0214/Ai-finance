@@ -1,29 +1,11 @@
 import httpx
-import os
 import logging
 import asyncio
-from dotenv import load_dotenv
-from services.auth import get_access_token
-
-load_dotenv()
+from services.auth import get_kis_headers, BASE_URL
 
 # 로거 설정
 logger = logging.getLogger(__name__)
 
-APP_KEY = os.getenv("KIS_APP_KEY")
-APP_SECRET = os.getenv("KIS_APP_SECRET")
-BASE_URL = os.getenv("KIS_BASE_URL")
-
-def get_headers(tr_id):
-    """헤더 생성 헬퍼 함수"""
-    access_token = get_access_token()
-    return {
-        "content-type": "application/json; charset=utf-8",
-        "authorization": f"Bearer {access_token}",
-        "appkey": APP_KEY,
-        "appsecret": APP_SECRET,
-        "tr_id": tr_id
-    }
 
 def parse_ranking_data(items, rank_type):
     """
@@ -73,7 +55,7 @@ async def _fetch_rank_data(client, path, tr_id, params, rank_type):
     """
     [Internal] 랭킹 데이터 요청 공통 함수 (Async)
     """
-    headers = get_headers(tr_id)
+    headers = get_kis_headers(tr_id)
     try:
         res = await client.get(f"{BASE_URL}{path}", headers=headers, params=params, timeout=10.0)
         res.raise_for_status()
