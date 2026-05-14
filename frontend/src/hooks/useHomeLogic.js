@@ -17,22 +17,34 @@ export const useHomeLogic = () => {
   const navigate = useNavigate();
   const [market, setMarket] = useState("us");
 
-  const { data: usRankingData, isLoading: isUsRankingLoading } = useQuery({
+  const {
+    data: usRankingData,
+    isLoading: isUsRankingLoading,
+    isFetching: isUsFetching,
+  } = useQuery({
     queryKey: ["usRankings"],
     queryFn: fetchRankings,
     staleTime: 1000 * 60 * 5, // 5분 캐싱
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
-  const { data: krRankingData, isLoading: isKrRankingLoading } = useQuery({
+  const {
+    data: krRankingData,
+    isLoading: isKrRankingLoading,
+    isFetching: isKrFetching,
+  } = useQuery({
     queryKey: ["krRankings"],
     queryFn: fetchKrRankings,
     staleTime: 1000 * 60 * 5, // 5분 캐싱
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const rankingData = market === "us" ? usRankingData : krRankingData;
   const isRankingLoading =
     market === "us" ? isUsRankingLoading : isKrRankingLoading;
-
+  const isRankingFetching = market === "us" ? isUsFetching : isKrFetching;
   const handleSearch = (name) => {
     if (name) {
       navigate(`/analysis/${name}`);
@@ -45,5 +57,6 @@ export const useHomeLogic = () => {
     rankingData,
     isRankingLoading,
     handleSearch,
+    isRankingFetching,
   };
 };

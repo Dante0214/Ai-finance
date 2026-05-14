@@ -2,12 +2,16 @@ import SearchBar from "../components/SearchBar";
 import RankingCard from "../components/RankingCard";
 import { useHomeLogic } from "../hooks/useHomeLogic";
 import WatchlistSection from "../components/WatchlistSection";
-import { useNavigate } from "react-router-dom";
-import { Star } from "lucide-react";
 
 function Home() {
-  const { market, setMarket, rankingData, isRankingLoading, handleSearch } =
-    useHomeLogic();
+  const {
+    market,
+    setMarket,
+    rankingData,
+    isRankingLoading,
+    isRankingFetching,
+    handleSearch,
+  } = useHomeLogic();
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-12 font-sans text-gray-900">
@@ -39,6 +43,13 @@ function Home() {
           🇰🇷 한국 시장
         </button>
       </div>
+
+      {/* 백그라운드 갱신 인디케이터 */}
+      {isRankingFetching && !isRankingLoading && (
+        <div className="text-xs text-gray-400 text-right mb-2 animate-pulse">
+          데이터 갱신 중...
+        </div>
+      )}
 
       {isRankingLoading ? (
         <div className="py-20 text-center text-gray-500 animate-pulse">

@@ -123,7 +123,7 @@ function WatchlistSection() {
         {watchlist.map((stock) => (
           <div
             key={stock.ticker}
-            onClick={() => navigate(`/analysis/${stock.ticker}`)}
+            onClick={() => navigate(`/analysis/${stock.company_name}`)}
             className="bg-white p-4 rounded-xl shadow hover:shadow-md transition-shadow cursor-pointer border border-gray-100"
           >
             <div className="flex justify-between items-start">

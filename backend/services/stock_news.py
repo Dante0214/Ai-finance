@@ -88,32 +88,34 @@ def get_naver_news(keyword: str, limit=10):
         
         items = response.json().get('items', [])
         exclude_keywords = ['증권', '證', 'ETF', 'etf']
-        for i in items:
-            # 1. HTML 태그(<b> 등) 제거
-            title_no_tag = re.sub(r'<[^>]*>', '', i['title'])
-            desc_no_tag = re.sub(r'<[^>]*>', '', i['description'])
-            
-            # 2. HTML 엔티티(&quot; 등)를 특수문자로 변환
-            title_clean = html.unescape(title_no_tag)
-            description_clean = html.unescape(desc_no_tag)
-            
-            # 제외 키워드 체크
-            if any(exclude in title_clean for exclude in exclude_keywords):
-                continue
-            
-            # 정확도 재검증
-            if keyword not in title_clean and keyword not in description_clean:
-                continue
-
-            news_list.append({
-                "title": title_clean,        
-                "description": description_clean, 
-                "link": i['link'],
-                "date": i.get('pubDate', '')
-            })
-            
-            if len(news_list) >= limit:
+        for page in range(3):
+            start=page*10+1
+            url = f"https://openapi.naver.com/v1/search/news.json?query={encoded_query}&display={display_count}&sort=sim"
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            items = response.json().get('items', [])
+            if not items:
                 break
+
+            for i in items:
+                # 1. HTML 태그(<b> 등) 제거
+                title_clean = html.unescape(re.sub(r'<[^>]*>', '', i['title']))
+                description_clean = html.unescape(re.sub(r'<[^>]*>', '', i['description']))
+                
+                if any(exc in title_clean for exc in exclude_keywords):
+                    continue
+                if keyword not in title_clean and keyword not in description_clean:
+                    continue
+
+                news_list.append({
+                    "title": title_clean,        
+                    "description": description_clean, 
+                    "link": i['link'],
+                    "date": i.get('pubDate', '')
+                })
+                
+                if len(news_list) >= limit:
+                    break
         logger.info(f"✅ [Naver News] '{keyword}' 관련 뉴스 {len(news_list)}개 수집")
         
     except requests.exceptions.RequestException as e:
@@ -121,5 +123,5 @@ def get_naver_news(keyword: str, limit=10):
     except Exception as e:
         logger.error(f"❌ [Naver News] Error: {e}")
     news_list = deduplicate_by_similarity(news_list)
-        
+    logger.info(f"✅ [Naver News] '{keyword}' 중복 제거 후 {len(news_list)}개 반환")
     return news_list
