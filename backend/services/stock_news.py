@@ -5,9 +5,29 @@ import re
 import os
 import logging
 import html
+from difflib import SequenceMatcher
 
 # 로거 설정
 logger = logging.getLogger(__name__)
+
+def is_similar(title1: str, title2: str, threshold: float = 0.7) -> bool:
+    return SequenceMatcher(None, title1, title2).ratio() > threshold
+
+def deduplicate_by_similarity(news_list: list, threshold: float = 0.7) -> list:
+    result = []
+    for news in news_list:
+        title = normalize_title(news['title'])
+        # 이미 추가된 뉴스들과 유사도 비교
+        if not any(is_similar(title, normalize_title(kept['title'])) for kept in result):
+            result.append(news)
+    return result
+def normalize_title(title: str) -> str:
+    """제목을 정규화하여 비교용 키 생성"""
+    # 소문자 변환, 특수문자/공백 제거
+    title = title.lower()
+    title = re.sub(r'[\s\[\](){}\-_.,!?\'\"]+', '', title)
+    return title
+
 
 def clean_company_name(name: str) -> str:
     """뉴스 검색 정확도를 위해 Inc, Corp 등을 제거"""
@@ -37,7 +57,7 @@ def get_google_news(keyword: str, limit=10):
         
     except Exception as e:
         logger.error(f"❌ [Google News] Error: {e}")
-        
+    news_list = deduplicate_by_similarity(news_list)
     return news_list
 
 def get_naver_news(keyword: str, limit=10):
@@ -100,5 +120,6 @@ def get_naver_news(keyword: str, limit=10):
         logger.error(f"❌ [Naver News] Network Error: {e}")
     except Exception as e:
         logger.error(f"❌ [Naver News] Error: {e}")
+    news_list = deduplicate_by_similarity(news_list)
         
     return news_list
