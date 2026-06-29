@@ -13,7 +13,7 @@ gemini_options = HttpOptions(
 )
 # gemini-2.5-flash-lite: 지역 제한 없이 동작하는 경량 모델 (Render 서버 호환)
 # gemini-2.5-flash: 로컬에서는 동작하지만 일부 서버 환경에서 FAILED_PRECONDITION 발생
-GEMINI_MODEL = "gemini-2.5-flash-lite"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 if not api_key:
     print("⚠️ GOOGLE_API_KEY가 설정되지 않았습니다.")
